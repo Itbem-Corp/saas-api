@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(PROFESSIONAL)
+  avatarUrl String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  services Service[]
+  bookings Booking[] @relation("ClientBookings")
+
+  @@map("users")
+}
+
+enum Role {
+  PROFESSIONAL
+  CLIENT
+  ADMIN
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       Int      // cents
+  currency    String   @default("USD")
+  duration    Int      // minutes
+  category    String
+  published   Boolean  @default(false)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings Booking[]
+
+  @@map("services")
+}
+
+model Booking {
+  id           String        @id @default(cuid())
+  serviceId    String
+  service      Service       @relation(fields: [serviceId], references: [id])
+  clientId     String
+  client       User          @relation("ClientBookings", fields: [clientId], references: [id])
+  scheduledAt  DateTime
+  status       BookingStatus @default(PENDING)
+  stripePaymentId String?
+  amount       Int           // cents
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
